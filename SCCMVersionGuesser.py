@@ -181,7 +181,7 @@ def fingerprint_sccm(url):
 
     full_url = f"{url.rstrip('/')}/CCM_CLIENT/ccmsetup.exe"
     try:
-        r = requests.get(full_url, headers={'Range': 'bytes=5000000-'}, timeout=10)
+        r = requests.get(full_url, headers={'Range': 'bytes=5000000-', 'User-Agent':'ConfigMgr Messaging HTTP Sender'}, timeout=10)
         pattern = rb'5\x00\.\x00\d\x00\d\x00\.\x00\d\x00\d\x00\d\x00\d\x00\.\x00\d\x00\d\x00\d\x00\d\x00'
         matches = re.findall(pattern, r.content)
         
