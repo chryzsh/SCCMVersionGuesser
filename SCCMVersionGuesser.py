@@ -134,45 +134,72 @@ def get_cves_for_kb(kb_id):
     addressed_cves = [cve for cve, kbs in CVE_MAP.items() if kb_id in kbs]
     return ", ".join(addressed_cves) if addressed_cves else "-"
 
+def ver_tuple(v):
+    # "5.00.9141.1010" / "5.0.9141.1010" -> (5, 0, 9141, 1010). Non-numeric
+    # fields become 0; short strings are padded so comparisons never raise.
+    nums = []
+    for p in str(v).split("."):
+        try:
+            nums.append(int(p))
+        except ValueError:
+            nums.append(0)
+    while len(nums) < 4:
+        nums.append(0)
+    return tuple(nums[:4])
+
 def audit_build(detected_ver):
     RED = "\033[31m"
-    ORANGE = "\033[33m" 
+    ORANGE = "\033[33m"
     GREEN = "\033[32m"
     RESET = "\033[0m"
-    # Find which build this version belongs to
-    target_build = None
-    for b_id, data in BUILD_MAP.items():
-        if any(detected_ver in item[0] for item in data["Stack"]):
-            target_build = b_id
-            break
-    
-    if not target_build:
-        print(f"[-] Version {detected_ver} not found in build database.")
+
+    detected = ver_tuple(detected_ver)
+    detected_build = detected[2]
+
+    # ccmsetup.exe reports build.revision (e.g. 9141.1010). The build number
+    # alone pins the release, so match on it rather than on an exact
+    # full-version string; a real host is often at an intermediate revision
+    # that isn't one of the enumerated hotfix entries.
+    if str(detected_build) in BUILD_MAP:
+        target_build = str(detected_build)
+    else:
+        # Unknown build: report the newest known release at or below it as a
+        # floor, so a version past the database still resolves to "at least X".
+        known = sorted((int(b) for b in BUILD_MAP), reverse=True)
+        floor = next((b for b in known if b <= detected_build), None)
+        if floor is None:
+            print(f"[-] Version {detected_ver} predates the build database (oldest known build: {known[-1]}).")
+        else:
+            print(f"[~] Build {detected_build} not in database; based on build ordering it is at "
+                  f"least {BUILD_MAP[str(floor)]['BaseName']} (build {floor}).")
         return
 
     data = BUILD_MAP[target_build]
     print(f"\n[!] MATCHED BUILD: {target_build} ({data['BaseName']})")
+
+    exact = any(ver_tuple(cv) == detected for cv, _, _, _ in data["Stack"])
+    if not exact:
+        print(f"[~] ccmsetup build {detected_ver} sits between listed updates; hotfix status is a "
+              f"floor (ccmsetup.exe lags the site build).")
+
     print(f"{'Status':<11} | {'KB / Update':<12} | {'Client Version':<14} | {'Full Version':<14} | {'Security Info'}")
     print("-" * 85)
 
-    found_current = False
     for client_v, kb, name, full_v in data["Stack"]:
         cve_list = get_cves_for_kb(kb)
-        
-        is_match = (detected_ver == client_v or detected_ver.replace(".00.", ".0.") == client_v.replace(".00.", ".0."))
+        row = ver_tuple(client_v)
 
-        if is_match:
+        if row == detected:
             status = f"{ORANGE}[CURRENT*]{RESET}"
-            found_current = True
-        elif not found_current:
+        elif row <= detected:
             status = f"{GREEN}[INSTALLED]{RESET}"
         else:
             status = f"{RED}[MISSING]{RESET}"
 
         print(f"{status:<20} | {kb:<12} | {client_v:<14} | {full_v:<14} | {cve_list}")
 
-    print("\n*Note: If multiple updates are marked as current, it is because they share")
-    print("\tthe same client version and cannot be distinguished using ccmsetup.exe alone.")
+    print("\n*Note: [INSTALLED]/[MISSING] compare the detected ccmsetup build as a floor.")
+    print("\tUpdates sharing a client version can't be distinguished by ccmsetup.exe alone.")
 
 def fingerprint_sccm(url):
     if url.lower().startswith("https"):
