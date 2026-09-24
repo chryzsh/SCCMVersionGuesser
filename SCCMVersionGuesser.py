@@ -4,6 +4,8 @@ import sys
 
 # Mapping CVE -> List of KBs that fix it
 CVE_MAP = {
+    "CVE-2026-47301 (AdminService EoP)": ["KB38232642", "KB39398030"], # https://msrc.microsoft.com/update-guide/vulnerability/CVE-2026-47301
+    "CVE-2026-26128 (SMS Provider EoP)": ["KB38982839", "KB39398030"], # https://msrc.microsoft.com/update-guide/vulnerability/CVE-2026-26128
     "CVE-2025-59501 (Auth Bypass)": ["KB35360093", "KB32851084"], # https://msrc.microsoft.com/update-guide/en-US/vulnerability/CVE-2025-59501
     "CVE-2025-59213 (Unauth SQLi)": ["KB34503790", "KB34503768"], # https://msrc.microsoft.com/update-guide/vulnerability/CVE-2025-59213
     "CVE-2025-55320 (Auth SQLi)": ["KB34503790", "KB34503768"], # https://msrc.microsoft.com/update-guide/vulnerability/CVE-2025-55320
@@ -19,6 +21,15 @@ CVE_MAP = {
 # https://aka.ms/KB<...>_2509_FileList
 # Source: https://github.com/MicrosoftDocs/memdocs/tree/main/intune/configmgr/hotfix
 BUILD_MAP = {
+    "9146": {
+        "BaseName": "SCCM 2603",
+        "Stack": [
+            ("5.00.9146.1000", "Base", "SCCM 2603 Release", "5.00.9146.1000"),
+            ("5.00.9146.1000", "KB38232642", "Security update for importing console extensions", "5.00.9146.1021"), # https://configmgrbits.cdn.manage.microsoft.com/qfe/2603/KB38232642_9146.1021/KB38232642_FileList.txt
+            ("5.00.9146.1000", "KB38982839", "Security update for SMS Provider and administration service", "5.00.9146.1026"), # https://configmgrbits.cdn.manage.microsoft.com/qfe/2603/KB38982839_9146.1026/KB38982839_FileList.txt
+            ("5.00.9146.1000", "KB39398030", "Security update for scripts, SMS Provider, MPE, and DDR (supersedes KB38232642, KB38982839)", "5.00.9146.1027"), # https://configmgrbits.cdn.manage.microsoft.com/qfe/2603/KB39398030_9146.1027/KB39398030_FileList.txt
+        ]
+    },
     "9141": {
         "BaseName": "SCCM 2509",
         "Stack": [
